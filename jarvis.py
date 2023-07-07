@@ -5,17 +5,26 @@ import json
 import os
 from dotenv import load_dotenv
 
-
 load_dotenv()
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
+wake_word = os.getenv("WAKE_WORD")
 
-wake_word = "hey jarvis"
+command_lookup = {
+    "open terminal": ["open", "-a", "Terminal"],
+    "close terminal": ["osascript", "-e", 'quit app "Terminal"'],
+    "conversation": ["echo", ""],
+    "play discover weekly": ["osascript", "-e", 'tell application "Spotify" to play track "spotify:playlist:37i9dQZEVXcMaWCjUILjal"'],
+    "exit": ["exit"],
+}
 
-commands = ["open terminal", "close terminal"]
+commands_string = str(list(command_lookup.keys()))  # Convert array to string
 
-delimiter = ', '  # Delimiter between array elements
-commands_string = '[' + delimiter.join(map(str, commands)) + ']'  # Convert array to string
+def say(text):
+    subprocess.call(["say", text])
+
+def execute_command(command):
+    subprocess.call(command)
 
 def transcribe_audio():
     r = sr.Recognizer()
@@ -29,8 +38,8 @@ def transcribe_audio():
         text = text.lower()
 
         print("Heard:", text)
-        if "hey jarvis" in text:
-            execute_command(text)
+        if wake_word in text:
+            get_gpt(text)
         else:
             print("Command not recognized.")
     except sr.UnknownValueError:
@@ -38,11 +47,11 @@ def transcribe_audio():
     except sr.RequestError as e:
         print(f"Error: {e}")
 
-def execute_command(command):
+def get_gpt(command):
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=[
-            {"role": "system", "content": "You are Jarvis, a snarky, artificial assistant created by Kieran Klukas. You will occasionally make fun of the request in a round about way, but always obey. Based on the below input, select the best command to execute from the following array. If there isn't a good command to execute, then say 'none'. Return only the command that should be executed from the array and a response as a JSON object" + commands_string},
+            {"role": "system", "content": "You are Jarvis, a snarky, artificial assistant created by Kieran Klukas. You will occasionally use dry humor. Based on the below input, select the best command to execute from the following array. Return only the command that should be executed from the array and a response as a JSON object" + commands_string},
             {"role": "user", "content": "Input:" + command}
         ]
     )
@@ -51,18 +60,22 @@ def execute_command(command):
         gpt_response = response["choices"][0]["message"]["content"]
         print("GPT-3:", gpt_response)
         assistant = json.loads(gpt_response)
-        print("Jarvis:", assistant['response'])
+        say(assistant['response'])
     else:
         print("Jarvis: Sorry, I didn't understand that command.")
+        say("Sorry, I didn't understand that command.")
 
     # Perform the corresponding action based on the assistant's response
-    if "open terminal" in assistant['command']:
-        subprocess.run(["open", "-a", "Terminal"])
-    elif "close terminal" in assistant['command']:
-        subprocess.run(["osascript", "-e", 'quit app "Terminal"'])
-    # Add more command-action mappings as needed
+    command = command_lookup.get(assistant['command'])
+    if command is not None:
+        if command == ["exit"]:
+            print("Exiting...")
+            exit()
+        else:
+            execute_command(command)
     else:
         print("Command not recognized.")
+        return
 
 # Start listening for commands
 try:
