@@ -30,7 +30,6 @@ def transcribe_audio():
 
         print("Heard:", text)
         if "hey jarvis" in text:
-            # command = text.replace("hey jarvis", "").strip()
             execute_command(text)
         else:
             print("Command not recognized.")
