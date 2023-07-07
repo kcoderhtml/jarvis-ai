@@ -14,22 +14,21 @@ porcupine_api_key = os.getenv("PORCUPINE_API_KEY")
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 porcupine = pvporcupine.create(
-  access_key=porcupine_api_key,
-  keyword_paths=["Hey-Jarvis_en_mac_v2_2_0/Hey-Jarvis_en_mac_v2_2_0.ppn"]
+    access_key=porcupine_api_key,
+    keyword_paths=["Hey-Jarvis_en_mac_v2_2_0/Hey-Jarvis_en_mac_v2_2_0.ppn"]
 )
 
 pa = pyaudio.PyAudio()
 
 audio_stream = pa.open(
-    rate=porcupine.sample_rate,
-    channels=1,
-    format=pyaudio.paInt16,
-    input=True,
-    frames_per_buffer=porcupine.frame_length)
-
-print("Listening for wake word...")
+        rate=porcupine.sample_rate,
+        channels=1,
+        format=pyaudio.paInt16,
+        input=True,
+        frames_per_buffer=porcupine.frame_length)
 
 def listen_for_wake_word():
+    print("Listening for wake word...")
     pcm = audio_stream.read(porcupine.frame_length)
     pcm = np.frombuffer(pcm, dtype=np.int16)
 
@@ -37,8 +36,8 @@ def listen_for_wake_word():
 
     if keyword_index >= 0:
         print('Wake word detected!')
-
-        print(transcribe_audio())
+        
+        process_command(transcribe_audio())
 
 
 wake_word = "hey jarvis"
@@ -53,11 +52,10 @@ def transcribe_audio():
     r = sr.Recognizer()
     with sr.Microphone() as source:
         print("Speak now...")
-        audio = r.listen(source)
+        # audio = r.listen(source)
     try:
-        text = r.recognize_google(audio)
-        print(f"You said: {text}")
-        return text
+        # text = r.recognize_google(audio)
+        return "text"
     except sr.UnknownValueError:
         print("Could not understand audio.")
     except sr.RequestError as e:
@@ -69,11 +67,8 @@ def process_command(command):
         command = command.lower()
 
         print("Heard:", command)
-        if wake_word in command:
-            command = command.replace(wake_word, "").strip()
-            execute_command(command)
-        else:
-            print("Wake word not detected.")
+        
+        listen_for_wake_word()
     except sr.UnknownValueError:
         print("Could not understand audio.")
     except sr.RequestError as e:
@@ -106,5 +101,11 @@ def execute_command(command):
         print("Command not recognized.")
 
 # Start listening for commands
-while True:
-    listen_for_wake_word()
+try:
+    while True:
+        listen_for_wake_word()
+except KeyboardInterrupt:
+    print("Stopping...")
+    audio_stream.close()
+    porcupine.delete()
+    pa.terminate()
