@@ -5,6 +5,8 @@ import json
 import pvporcupine
 import os
 from dotenv import load_dotenv
+import pyaudio
+import numpy as np
 
 load_dotenv()
 
@@ -13,8 +15,31 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 
 porcupine = pvporcupine.create(
   access_key=porcupine_api_key,
-  keyword_paths="~/Hey-Jarvis_en_mac_v2_2_0/Hey-Jarvis_en_mac_v2_2_0.ppn"
+  keyword_paths=["Hey-Jarvis_en_mac_v2_2_0/Hey-Jarvis_en_mac_v2_2_0.ppn"]
 )
+
+pa = pyaudio.PyAudio()
+
+audio_stream = pa.open(
+    rate=porcupine.sample_rate,
+    channels=1,
+    format=pyaudio.paInt16,
+    input=True,
+    frames_per_buffer=porcupine.frame_length)
+
+print("Listening for wake word...")
+
+def listen_for_wake_word():
+    pcm = audio_stream.read(porcupine.frame_length)
+    pcm = np.frombuffer(pcm, dtype=np.int16)
+
+    keyword_index = porcupine.process(pcm)
+
+    if keyword_index >= 0:
+        print('Wake word detected!')
+
+        print(transcribe_audio())
+
 
 wake_word = "hey jarvis"
 
@@ -22,31 +47,17 @@ wake_word = "hey jarvis"
 commands = ["open terminal", "close terminal"]
 
 delimiter = ', '  # Delimiter between array elements
-commands_string = '[' + delimiter.join(map(str, commands)) + ']'
+commands_string = '[' + delimiter.join(map(str, commands)) + ']'  # Convert array to string
 
-def get_next_audio_frame():
-  pass
-
-def listen_for_command():
-    
+def transcribe_audio():
     r = sr.Recognizer()
     with sr.Microphone() as source:
-        print("Listening...")
-        while True:
-            audio = r.listen(source)
-            pcm = audio.frame_data
-
-            # Detect wake word
-            if porcupine.process(pcm):
-                print("Wake word detected!")
-                transcribed_text = transcribe_audio(r, audio)
-                process_command(audio)
-                break
-
-def transcribe_audio(recognizer, audio):
+        print("Speak now...")
+        audio = r.listen(source)
     try:
-        transcribed_text = recognizer.recognize_google(audio)
-        return transcribed_text
+        text = r.recognize_google(audio)
+        print(f"You said: {text}")
+        return text
     except sr.UnknownValueError:
         print("Could not understand audio.")
     except sr.RequestError as e:
@@ -96,4 +107,4 @@ def execute_command(command):
 
 # Start listening for commands
 while True:
-    listen_for_command()
+    listen_for_wake_word()
