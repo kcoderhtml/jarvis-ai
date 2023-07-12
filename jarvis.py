@@ -1,7 +1,5 @@
 # import speech and audio libraries
 import speech_recognition as sr
-import struct
-import pyaudio
 import subprocess
 # import openai library
 import openai
@@ -75,10 +73,10 @@ say("Initializing...")
 try:
     with m as source:
         r.adjust_for_ambient_noise(source)
-    say("Initialized. Listening for wake word...")
+    say("Initialized.")
     while True:
             with m as source:
-                audio = r.listen(source, phrase_time_limit=2)
+                audio = r.listen(source, phrase_time_limit=1)
             try:
                 value = r.recognize_google(audio)
                 if wake_word in value.lower():
@@ -87,6 +85,7 @@ try:
                         audio = r.listen(source, phrase_time_limit=5)
                     try:
                         value = r.recognize_google(audio)
+                        say("thinking...")
                         get_gpt(value)
                     except sr.UnknownValueError:
                         print("Oops! Didn't catch that command")
