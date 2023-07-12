@@ -1,6 +1,7 @@
 # import speech and audio libraries
 import speech_recognition as sr
 import subprocess
+import pyttsx3
 # import openai library
 import openai
 # import env libraries
@@ -25,9 +26,14 @@ commands_string = str(list(command_lookup.keys()))  # Convert array to string
 r = sr.Recognizer()
 m = sr.Microphone()
 
+# set up text to speech
+engine = pyttsx3.init()
+engine.setProperty('rate', 190)
+
 def say(text):
     print(text)
-    subprocess.call(["say", text])
+    engine.say(text)
+    engine.runAndWait()
 
 def execute_command(command):
     subprocess.call(command)
@@ -39,8 +45,8 @@ def handle_response(response):
         say("Error decoding JSON response")
         return
     
-    if assistant['response'] is not None:
-        say(assistant['response'])
+    if assistant['message'] is not None:
+        say(assistant['message'])
     elif assistant['command'] is not None:
         if assistant['command'] == ["exit"]:
             print("Exiting...")
@@ -55,7 +61,7 @@ def get_gpt(command):
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=[
-            {"role": "system", "content": "You are Jarvis, a dry, snarky, ai assistant. Based on the below input, select the best command to execute from the following array. Return only the command that should be executed from the array and a response as a JSON object. " + commands_string},
+            {"role": "system", "content": "You are Jarvis, a dry, snarky, ai assistant. Based on the below input, select the best command to execute from the following array. Return only the command that should be executed from the array and a message as a JSON object. For conversation give a reply via the message key. Only give the json object. Commands:" + commands_string},
             {"role": "user", "content": "Input:" + command}
         ]
     )
@@ -68,23 +74,24 @@ def get_gpt(command):
         say("Sorry, something went wrong with my brain.")
 
 say("Initializing...")
-
 # Start listening for commands
 try:
     with m as source:
         r.adjust_for_ambient_noise(source)
     say("Initialized.")
+    print("Say '" + wake_word + "' to wake me up.")
     while True:
             with m as source:
-                audio = r.listen(source, phrase_time_limit=1)
+                audio = r.listen(source, phrase_time_limit=2)
             try:
                 value = r.recognize_google(audio)
                 if wake_word in value.lower():
                     say("Yes?")
                     with m as source:
-                        audio = r.listen(source, phrase_time_limit=5)
+                        audio = r.listen(source, phrase_time_limit=7)
                     try:
                         value = r.recognize_google(audio)
+                        print(value)
                         say("thinking...")
                         get_gpt(value)
                     except sr.UnknownValueError:
@@ -97,5 +104,7 @@ try:
                 print("Uh oh! Couldn't request results from Google Speech Recognition service; {0}".format(e))
 except KeyboardInterrupt:
     print("Stopping....")
+    engine.stop()
+    exit()
 except Exception as e:
     print("Error: ", e)
