@@ -80,24 +80,25 @@ try:
     porcupine = pvporcupine.create(
         access_key=porcupine_api_key,
         keyword_paths=["Hey-Jarvis_en_mac_v2_2_0/Hey-Jarvis_en_mac_v2_2_0.ppn"]
-        )
+    )
 
     sound = pyaudio.PyAudio()
-    
+
     audio_stream = sound.open(
-                    rate=porcupine.sample_rate,
-                    channels=1,
-                    format=pyaudio.paInt16,
-                    input=True,
-                    frames_per_buffer=porcupine.frame_length)
-    
-    with m as source: r.adjust_for_ambient_noise(source)
-    
+        rate=porcupine.sample_rate,
+        channels=1,
+        format=pyaudio.paInt16,
+        input=True,
+        frames_per_buffer=porcupine.frame_length)
+
+    # with m as source:
+    #     r.adjust_for_ambient_noise(source)
+
     listening = False
     
     say("Initialized")
     while True:
-        pcm = audio_stream.read(porcupine.frame_length)
+        pcm = audio_stream.read(porcupine.frame_length, exception_on_overflow=False)
         pcm = struct.unpack_from("h" * porcupine.frame_length, pcm)
 
         keyword_index = porcupine.process(pcm)
@@ -107,7 +108,8 @@ try:
             print("Hotword Detected")
             
         if listening:
-            with m as source: audio = r.listen(source)
+            with m as source:
+                audio = r.listen(source, phrase_time_limit=5)
             try:
                 value = r.recognize_google(audio)
                 print("You said {}".format(value))
@@ -117,9 +119,14 @@ try:
                 print("Uh oh! Couldn't request results from Google Speech Recognition service; {0}".format(e))
             finally:
                 listening = False
+                value = r.recognize_google(audio)
+                print("You said {}".format(value))
+                break
             
 except KeyboardInterrupt:
     print("Stopping....")
+except Exception as e:
+    print("Error: ", e)
 
 finally:
     if porcupine is not None:
