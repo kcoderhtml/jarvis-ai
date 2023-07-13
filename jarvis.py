@@ -95,7 +95,7 @@ try:
                         say("thinking...")
                         get_gpt(value)
                     except sr.UnknownValueError:
-                        print("Oops! Didn't catch that command")
+                        say("Oops! Didn't catch that.")
                     except sr.RequestError as e:
                         print("Uh oh! Couldn't request results from Google Speech Recognition")
             except sr.UnknownValueError:
