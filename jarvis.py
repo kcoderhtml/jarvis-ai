@@ -24,7 +24,12 @@ load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 pico_api_key = os.getenv("PICO_API_KEY")
 wake_word = os.getenv("WAKE_WORD")
+
 tempfile_name = os.path.join(tempfile.gettempdir(), "command.wav")
+silence_threshold = 1000  # Adjust this threshold as neede
+
+# set up variable to check if first run
+first_run = True
 
 # set up command lookup array
 command_lookup = {
@@ -45,6 +50,25 @@ recognizer = sr.Recognizer()
 engine = pyttsx3.init()
 engine.setProperty('rate', 190)
 
+def get_silence_threshold():
+    command_recorder = PvRecorder(device_index=-1, frame_length=512)
+    audio = []
+    try:
+        command_recorder.start()
+
+        start_time = time.time()
+        volume = 0  # total volume of frames
+
+        while time.time() - start_time < 2:
+            frame = command_recorder.read()
+            audio.extend(frame)
+        command_recorder.stop()
+
+        volume = np.abs(frame).mean()
+        return volume
+    finally:
+        command_recorder.delete()
+
 def record_command():
     command_recorder = PvRecorder(device_index=-1, frame_length=512)
     audio = []
@@ -54,7 +78,6 @@ def record_command():
 
         start_time = time.time()
         silence_counter = 0  # Counter for consecutive frames with low volume
-        silence_threshold = 1000  # Adjust this threshold as needed
 
         while time.time() - start_time < 5:
             frame = command_recorder.read()
@@ -135,12 +158,19 @@ recorder = PvRecorder(
         device_index=-1)
 recorder.start()
 
-say("Initialized.")
+say("Calibrating Noise Level. Please be quiet for 2 seconds.")
+
+silence_threshold = get_silence_threshold()
+
+say("Initialized. Silence threshold: " + str(silence_threshold) + ".")
+
 try:
     # Infinite loop for continuous listening
     while True:
         recorder.start()
-        print("Listening for wake word...")
+        if first_run:
+            say("Listening for wake word...")
+            first_run = False
         
         # Use pvrecorder to record audio until wake word is detected
         while True:
@@ -152,6 +182,7 @@ try:
                 break
         # Use speech recognition after wake word is detected
         print("Listening for command...")
+        say("Yes?")
         record_command()
         with sr.AudioFile(tempfile_name) as source:
             audio = r.record(source)
@@ -160,11 +191,13 @@ try:
             # Perform speech recognition
             command = r.recognize_google(audio)
             print(f"Command: {command}")
+            say("Processing...")
             get_gpt(command)
         except sr.UnknownValueError:
-            print("Could not understand audio")
+            say("Sorry, I didn't understand that.")
         except sr.RequestError as e:
             print(f"Error: {str(e)}")
+            say("Error. Please try again.")
 except KeyboardInterrupt:
     print("Stopping...")
     recorder.stop()
