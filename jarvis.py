@@ -26,7 +26,7 @@ pico_api_key = os.getenv("PICO_API_KEY")
 wake_word = os.getenv("WAKE_WORD")
 
 tempfile_name = os.path.join(tempfile.gettempdir(), "command.wav")
-silence_threshold = 1000  # Adjust this threshold as neede
+silence_threshold = 1000  # Adjust this threshold as needed
 
 # set up variable to check if first run
 first_run = True
@@ -77,25 +77,16 @@ def record_command():
         command_recorder.start()
 
         start_time = time.time()
-        silence_counter = 0  # Counter for consecutive frames with low volume
 
         while time.time() - start_time < 5:
             frame = command_recorder.read()
             audio.extend(frame)
 
-            volume = np.abs(frame).mean()
-
-            # Check if volume is below threshold
-            if volume < silence_threshold:
-                silence_counter += 1
-            else:
-                silence_counter = 0
-
-            # Check if silence has persisted for 1 second
-            if silence_counter <= 1:
-                silence_time = time.time()  # Time of last frame with high volume
-            elif time.time() - silence_time > 1:
-                break
+            if len(frame) >= 30:
+                volume = np.abs(frame[-31:]).mean()
+                if volume * 1.2 <= silence_threshold:
+                    print("Silence detected. Stopping recording.")
+                    break
 
         command_recorder.stop()
         with wave.open(tempfile_name, 'w') as f:
