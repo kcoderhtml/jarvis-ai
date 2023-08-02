@@ -14,6 +14,9 @@ The api ends up being quite cheap. I used it to generate commit messages through
 ![image](https://github.com/kcoderhtml/jarvis-ai/assets/92754843/a66bc4b0-cd7b-400f-a5b6-bb9ec578bace)
 ![image](https://github.com/kcoderhtml/jarvis-ai/assets/92754843/3b111b65-1df4-48f4-a1da-3e1a6d105b67)
 
-If you want to customize the wake word then you need to replace the wake word in the env file as well as the wake word training data in /Hey-Jarvis_en_mac_v2_2_0/Hey-Jarvis_en_mac_v2_2_0.ppn with your own wake word. Go to [https://console.picovoice.ai/ppn](https://console.picovoice.ai/ppn) to train your own wake word file.
+If you want to customize the wake word then you need to replace the wake word in the env file as well 
+as the wake word training data in /wake_word/wake_word.ppn with your own wake word. Go 
+to 
+[https://console.picovoice.ai/ppn](https://console.picovoice.ai/ppn) to train your own wake word file.
 
 ![image](https://github.com/kcoderhtml/jarvis-ai/assets/92754843/89715c75-4a51-4e42-acfa-36bb1ad187ae)

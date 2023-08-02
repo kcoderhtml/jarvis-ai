@@ -42,7 +42,7 @@ commands_string = str(list(command_lookup.keys()))  # Convert array to string
 # set up speech recognition
 porcupine = pvporcupine.create(
     access_key=pico_api_key,
-    keyword_paths=["Hey-Jarvis_en_mac_v2_2_0/Hey-Jarvis_en_mac_v2_2_0.ppn"],
+    keyword_paths=["wake_word/wake_word.ppn"],
 )
 recognizer = sr.Recognizer()
 
